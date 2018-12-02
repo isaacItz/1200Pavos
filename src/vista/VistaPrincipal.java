@@ -37,6 +37,7 @@ public class VistaPrincipal extends JFrame {
 	private JMenuItem resumenVentas;
 	private Fondo contentPane;
 	private Conexion conexion;
+	private JMenuItem mntmResurtirProducto;
 
 	public VistaPrincipal() {
 
@@ -79,6 +80,9 @@ public class VistaPrincipal extends JFrame {
 		altaProducto = new JMenuItem("Registrar Producto");
 		inventario.add(altaProducto);
 		altaProducto.addActionListener(new OyenteRegistrarProducto());
+
+		mntmResurtirProducto = new JMenuItem("Resurtir Producto");
+		inventario.add(mntmResurtirProducto);
 		bajaProducto = new JMenuItem("Eliminar Producto del Inventario");
 		inventario.add(bajaProducto);
 		bajaProducto.addActionListener(new OyenteEliminarProducto());
@@ -232,7 +236,7 @@ public class VistaPrincipal extends JFrame {
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
-
+			new ResumenCaja(conexion).setVisible(true);
 		}
 
 	}
