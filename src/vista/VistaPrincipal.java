@@ -1,12 +1,19 @@
 package vista;
 
+import static modelo.Utileria.escribir;
+import static modelo.Utileria.leerInt;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import static modelo.Utileria.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -218,7 +225,23 @@ public class VistaPrincipal extends JFrame {
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
+			int cantidad = leerInt("Ingresa el Monto A Depositar");
+			try {
+				ResultSet rs = conexion.Consulta("Select max(id_cambio) from caja");
+				rs.next();
+				int id = rs.getInt(1);
+				int totalActual = 0;
+				rs = conexion.Consulta("Select total from caja where id_cambio = " + id);
+				rs.next();
+				totalActual = rs.getInt(1) + cantidad;
+				String consulta = "UPDATE `caja` SET `total`=" + totalActual + ",`fecha inicio`='" + LocalDateTime.now()
+						+ "' WHERE id_cambio = " + id;
 
+				PreparedStatement ps = conexion.getPreparedStatement(consulta);
+				ps.executeUpdate();
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+			}
 		}
 
 	}
