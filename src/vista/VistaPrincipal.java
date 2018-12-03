@@ -2,6 +2,7 @@ package vista;
 
 import static modelo.Utileria.escribir;
 import static modelo.Utileria.leerInt;
+import static modelo.Utileria.*;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -21,6 +22,7 @@ import javax.swing.JMenuItem;
 import javax.swing.border.EmptyBorder;
 
 import modelo.Conexion;
+import modelo.Utileria;
 
 public class VistaPrincipal extends JFrame {
 
@@ -89,6 +91,7 @@ public class VistaPrincipal extends JFrame {
 		altaProducto.addActionListener(new OyenteRegistrarProducto());
 
 		mntmResurtirProducto = new JMenuItem("Resurtir Producto");
+		mntmResurtirProducto.addActionListener(new OyenteResurtirProduc());
 		inventario.add(mntmResurtirProducto);
 		bajaProducto = new JMenuItem("Eliminar Producto del Inventario");
 		inventario.add(bajaProducto);
@@ -187,7 +190,34 @@ public class VistaPrincipal extends JFrame {
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
+			new RegistroProducto(conexion).setVisible(true);
+		}
 
+	}
+
+	private class OyenteResurtirProduc implements ActionListener {
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			do {
+
+				int id = leerInt("Ingresa el Codigo de Barras del Producto a Surtir");
+				if (conexion.existe("productos", "codigodebarras", id)) {
+					int cant = leerInt("¿Cuantos Articulos Desea Agregar?");
+					String consulta = "update productos set existencia = " + cant + " where codigodebarras = " + id;
+					PreparedStatement ps;
+					try {
+						ps = conexion.getPreparedStatement(consulta);
+						ps.executeUpdate();
+						escribir("Producto agregado");
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+
+				} else
+					escribir("el Producto no Existe");
+
+			} while (continuar("Desea Agregar Mas Productos"));
 		}
 
 	}
@@ -196,7 +226,33 @@ public class VistaPrincipal extends JFrame {
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
+			do {
+				int id = leerInt("Ingresa el Codigo de Barras del Producto a Surtir");
+				if (conexion.existe("productos", "codigodebarras", id)) {
+					int cant = leerInt("¿Cuantos Articulos Desea Eliminar?");
+					try {
+						ResultSet rs = conexion
+								.Consulta("Select existencia from productos where codigodebarras =" + id);
+						rs.next();
+						int totalExistencias = rs.getInt(1);
+						if (cant <= totalExistencias) {
+							String consulta = "update productos set existencia = " + (totalExistencias - cant)
+									+ " where codigodebarras = " + id;
+							PreparedStatement ps;
+							ps = conexion.getPreparedStatement(consulta);
+							ps.executeUpdate();
+							escribir("Producto Eliminado!");
+						} else
+							escribir("La Cantidad Supera las Existencias");
 
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+
+				} else
+					escribir("el Producto no Existe");
+
+			} while (continuar("Desea Eliminar Mas Productos"));
 		}
 
 	}
@@ -214,7 +270,48 @@ public class VistaPrincipal extends JFrame {
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
+			ResultSet rs;
+			do {
 
+				int id = leerInt("ingresa el codigo de barras del producto a modificar");
+				if (conexion.existe("productos", "codigodebarras", id))
+					try {
+
+						Object[] list = null;
+
+						int lon = 0;
+						int op = 0;
+						do {
+							rs = conexion.Consulta(
+									"Select nombre,tipo,precio,descripcion from productos where codigodebarras = "
+											+ id);
+							list = conexion.getArregloModificaion(rs);
+							lon = list.length;
+							op = mostrarMenu(list);
+							if (op == lon + 1)
+								break;
+							String columna = rs.getMetaData().getColumnLabel(op);
+							String dato = leerCadena("Ingrese Nuevo " + columna);
+
+							String consulta = "update productos set `" + columna + "` = '" + dato
+									+ "' where codigodebarras = " + id;
+
+							PreparedStatement ps = conexion.getPreparedStatement(consulta);
+							try {
+								ps.executeUpdate();
+							} catch (Exception e2) {
+								escribir("Error en El Formato");
+							}
+
+							escribir("Producto Modificado");
+						} while (op != lon + 1);
+
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+				else
+					escribir("El producto no existe");
+			} while (continuar("¿Desea Modificar Otro Producto?"));
 		}
 
 	}
@@ -231,11 +328,12 @@ public class VistaPrincipal extends JFrame {
 				rs.next();
 				int id = rs.getInt(1);
 				int totalActual = 0;
-				rs = conexion.Consulta("Select total from caja where id_cambio = " + id);
+				rs = conexion.Consulta("Select total, depositado from caja where id_cambio = " + id);
 				rs.next();
 				totalActual = rs.getInt(1) + cantidad;
+				int totalDepositado = rs.getInt(2);
 				String consulta = "UPDATE `caja` SET `total`=" + totalActual + ",`fecha inicio`='" + LocalDateTime.now()
-						+ "' WHERE id_cambio = " + id;
+						+ "', depositado = " + (cantidad + totalDepositado) + " WHERE id_cambio = " + id;
 
 				PreparedStatement ps = conexion.getPreparedStatement(consulta);
 				ps.executeUpdate();
@@ -250,7 +348,41 @@ public class VistaPrincipal extends JFrame {
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
+			try {
+				ResultSet rs = conexion.Consulta("Select max(id_cambio) from caja");
+				rs.next();
+				int id = rs.getInt(1);
+				int totalActual;
+				rs = conexion.Consulta("Select total from caja where id_cambio = " + id);
+				rs.next();
+				totalActual = rs.getInt(1);
+				String aux = "¿Cuanto Desea Retirar?\nDinero en Caja: " + totalActual;
+				int cant = 0;
+				do {
+					cant = leerInt(aux);
+					if (cant < totalActual) {
+						String consulta = "UPDATE `caja` SET `fecha corte`='" + LocalDateTime.now()
+								+ "' WHERE id_cambio = " + id;
+						PreparedStatement ps = conexion.getPreparedStatement(consulta);
+						ps.executeUpdate();
+						consulta = "insert into caja (`inicio`, `total`, `fecha inicio`, `fecha corte`) VALUES (?,?,?,?)";
+						ps = conexion.getPreparedStatement(consulta);
+						ps.setInt(1, (totalActual - cant));
+						ps.setInt(2, (totalActual - cant));
+						rs = conexion
+								.Consulta("Select `fecha corte`, `fecha inicio` from caja where id_cambio = " + id);
+						rs.next();
+						ps.setString(3, rs.getString(2));
+						ps.setString(4, rs.getString(1));
+						ps.executeUpdate();
+						escribir("Dinero Retirado!");
+					} else
+						escribir("No Puedes retirar mas de " + totalActual);
+				} while (cant > totalActual);
 
+			} catch (Exception e2) {
+				e2.printStackTrace();
+			}
 		}
 
 	}

@@ -140,9 +140,7 @@ public class ResumenVentas extends JDialog {
 				consulta += (personalizado);
 
 			rs = conexion.Consulta(consulta);
-
 			datos = conexion.getDatosTabla(rs);
-
 			columnasTabla = new Object[rs.getMetaData().getColumnCount()];
 			for (int i = 0; i < columnasTabla.length; i++)
 				columnasTabla[i] = rs.getMetaData().getColumnLabel(i + 1);

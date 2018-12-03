@@ -28,6 +28,7 @@ public class ResumenCaja extends JDialog {
 	private JLabel ultimoDeposito;
 	private JLabel total;
 	private JLabel ultimoCorte;
+	private JLabel depositado;
 
 	public ResumenCaja(Conexion conexion) {
 		setResizable(false);
@@ -36,7 +37,7 @@ public class ResumenCaja extends JDialog {
 		this.conexion = conexion;
 		setModal(true);
 		setIconImage(Toolkit.getDefaultToolkit().getImage(ResumenCaja.class.getResource("/vista/logo.png")));
-		setSize(422, 244);
+		setSize(422, 285);
 		setLocationRelativeTo(null);
 		getContentPane().setLayout(new BorderLayout());
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -45,7 +46,7 @@ public class ResumenCaja extends JDialog {
 
 		JPanel panel = new JPanel();
 		panel.setBorder(new TitledBorder(null, "Resumen Caja", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-		panel.setBounds(16, 16, 390, 162);
+		panel.setBounds(16, 16, 390, 207);
 		contentPanel.add(panel);
 		panel.setLayout(null);
 
@@ -58,28 +59,36 @@ public class ResumenCaja extends JDialog {
 		panel.add(lblTotalEnCaja);
 
 		JLabel lblFechaDeUltimo = new JLabel("Fecha de Ultimo Deposito:");
-		lblFechaDeUltimo.setBounds(16, 94, 136, 14);
+		lblFechaDeUltimo.setBounds(16, 162, 151, 14);
 		panel.add(lblFechaDeUltimo);
 
 		JLabel lblFechaDeUltimo_1 = new JLabel("Fecha de Ultimo Corte:");
-		lblFechaDeUltimo_1.setBounds(16, 126, 136, 14);
+		lblFechaDeUltimo_1.setBounds(16, 126, 151, 14);
 		panel.add(lblFechaDeUltimo_1);
 
 		inicio = new JLabel("0.00");
-		inicio.setBounds(172, 27, 104, 14);
+		inicio.setBounds(207, 27, 104, 14);
 		panel.add(inicio);
 
 		total = new JLabel("0.00");
-		total.setBounds(172, 58, 104, 14);
+		total.setBounds(207, 58, 104, 14);
 		panel.add(total);
 
 		ultimoDeposito = new JLabel("0.00");
-		ultimoDeposito.setBounds(172, 94, 173, 14);
+		ultimoDeposito.setBounds(207, 162, 173, 14);
 		panel.add(ultimoDeposito);
 
 		ultimoCorte = new JLabel("0.00");
-		ultimoCorte.setBounds(172, 126, 184, 14);
+		ultimoCorte.setBounds(206, 126, 184, 14);
 		panel.add(ultimoCorte);
+
+		JLabel lblDepositado = new JLabel("Depositado:");
+		lblDepositado.setBounds(16, 94, 87, 14);
+		panel.add(lblDepositado);
+
+		depositado = new JLabel("0.00");
+		depositado.setBounds(207, 94, 104, 14);
+		panel.add(depositado);
 		{
 			JPanel buttonPane = new JPanel();
 			getContentPane().add(buttonPane, BorderLayout.SOUTH);
@@ -115,6 +124,7 @@ public class ResumenCaja extends JDialog {
 				inicio.setText(rs.getString(2));
 				total.setText(rs.getString(3));
 				ultimoCorte.setText(rs.getString(5));
+				depositado.setText(rs.getString(6));
 				ultimoDeposito.setText(rs.getString(4));
 
 			} else
@@ -125,5 +135,4 @@ public class ResumenCaja extends JDialog {
 		}
 
 	}
-
 }

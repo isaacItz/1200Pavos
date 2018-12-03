@@ -61,6 +61,34 @@ public class Conexion {
 
 	}
 
+	public int getAutoIncrement(String tabla) {
+		try {
+			ResultSet rs = Consulta(
+					"SELECT `AUTO_INCREMENT`	FROM  INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'chacharas' AND   TABLE_NAME   = '"
+							+ tabla + "'");
+			if (rs.next())
+				return rs.getInt(1);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return -1;
+	}
+
+	public void venderProducto(double precio) throws SQLException {
+		String consulta = "Select max(id_cambio) from caja";
+		ResultSet rs = Consulta(consulta);
+		rs.next();
+		int id = rs.getInt(1);
+		rs = Consulta("Select total from caja where id_cambio = " + id);
+		rs.next();
+		double totalActual = rs.getDouble(1);
+		consulta = "update caja set total = " + (precio + totalActual) + " where id_cambio = " + id;
+
+		PreparedStatement ps = getPreparedStatement(consulta);
+		ps.executeUpdate();
+
+	}
+
 	public boolean actualizar(String tabla, String campo, String dato, String criterio, String datoCriterio) {
 		String consulta = "UPDATE `" + tabla + "` SET `" + campo + "` = '" + dato + "'  WHERE `" + criterio + "` = '"
 				+ datoCriterio + "'";
@@ -257,7 +285,7 @@ public class Conexion {
 		return false;
 	}
 
-	public boolean existe(String tabla, String colum, String dato) {
+	public boolean existe(String tabla, String colum, Object dato) {
 		String consulta = "Select * From " + tabla + " where " + colum + "= '" + dato + "'";
 		ResultSet rs;
 		try {

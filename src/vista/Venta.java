@@ -41,7 +41,6 @@ public class Venta extends JDialog {
 	private Object[] columnasTabla = null;
 	private JScrollPane scrollPane;
 
-	@SuppressWarnings("serial")
 	public Venta(Conexion conexion) {
 		this.conexion = conexion;
 		nombreTabla = "productos";
@@ -197,6 +196,9 @@ public class Venta extends JDialog {
 							ps.setObject(3, LocalDateTime.now());
 							ps.setDouble(4, total);
 							ps.executeUpdate();
+
+							conexion.venderProducto(precio);
+
 							escribir("Vendido!");
 						} catch (SQLException e1) {
 							e1.printStackTrace();
