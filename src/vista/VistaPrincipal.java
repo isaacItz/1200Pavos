@@ -1,8 +1,11 @@
 package vista;
 
+import static modelo.Utileria.continuar;
 import static modelo.Utileria.escribir;
+import static modelo.Utileria.leerCadena;
+import static modelo.Utileria.leerDouble;
 import static modelo.Utileria.leerInt;
-import static modelo.Utileria.*;
+import static modelo.Utileria.mostrarMenu;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -15,10 +18,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.border.EmptyBorder;
 
 import modelo.Conexion;
@@ -33,7 +38,7 @@ public class VistaPrincipal extends JFrame {
 	private JMenu apartados;
 	private JMenu caja;
 	private JMenuItem realizarVenta;
-	private JMenuItem busquedaInventario;
+	private JMenu busquedaInventario;
 	private JMenuItem altaProducto;
 	private JMenuItem bajaProducto;
 	private JMenuItem modificacion;
@@ -47,6 +52,10 @@ public class VistaPrincipal extends JFrame {
 	private Fondo contentPane;
 	private Conexion conexion;
 	private JMenuItem mntmResurtirProducto;
+	private JMenuItem buscarPorNombre;
+	private JMenuItem BuscarPorCodigoDeBarras;
+	private JMenuItem buscarPorPrecio;
+	private JMenuItem buscarPorDescripcion;
 
 	public VistaPrincipal() {
 
@@ -96,9 +105,22 @@ public class VistaPrincipal extends JFrame {
 		bajaProducto = new JMenuItem("Eliminar Producto del Inventario");
 		inventario.add(bajaProducto);
 		bajaProducto.addActionListener(new OyenteEliminarProducto());
-		busquedaInventario = new JMenuItem("Buscar Producto");
+		busquedaInventario = new JMenu("Buscar Producto por:");
 		inventario.add(busquedaInventario);
-		busquedaInventario.addActionListener(new OyenteConsultarProducto());
+
+		BuscarPorCodigoDeBarras = new JMenuItem("Codigo de Barras");
+		BuscarPorCodigoDeBarras.addActionListener(new OyenteConsultarProductoPorCodigoDeBarras());
+		busquedaInventario.add(BuscarPorCodigoDeBarras);
+		buscarPorNombre = new JMenuItem("Nombre");
+		buscarPorNombre.addActionListener(new OyenteConsultarProductoPorNombre());
+		busquedaInventario.add(buscarPorNombre);
+		buscarPorPrecio = new JMenuItem("Precio");
+		buscarPorPrecio.addActionListener(new OyenteConsultarProductoPorPrecio());
+		busquedaInventario.add(buscarPorPrecio);
+		buscarPorDescripcion = new JMenuItem("Descripcion");
+		buscarPorDescripcion.addActionListener(new OyenteConsultarProductoPorDescripcion());
+		busquedaInventario.add(buscarPorDescripcion);
+
 		modificacion = new JMenuItem("Modificar Producto");
 		inventario.add(modificacion);
 		modificacion.addActionListener(new OyenteModificarProducto());
@@ -161,7 +183,88 @@ public class VistaPrincipal extends JFrame {
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
+			int buscar = 0;
+			Integer idProducto = leerInt("Ingresa el Codigo de Barras del Producto a Apartar");
+			if (idProducto != null)
+				if (conexion.existe("productos", "codigodebarras", idProducto)) {
+					int existencia = (int) conexion.getCampo("productos", "existencia", "codigodebarras", idProducto);
+					if (existencia > 0) {
+						String nomP = (String) conexion.getCampo("productos", "nombre", "codigodeBarras", idProducto);
+						String nombre = Utileria.leerCadena("A nombre de quien sera registrada el " + nomP);
+						buscar = JOptionPane.showConfirmDialog(null, "Desea registrar el numero telefonico? ", "tel",
+								JOptionPane.YES_NO_OPTION);
+						Long cel = 0l;
+						if (buscar == JOptionPane.YES_OPTION) {
+							cel = Utileria.leerBigInt("Ingrese el Numero de Celular ");
+						}
 
+						Object existencias[] = new Object[existencia];
+						for (int i = 0; i < existencia; i++) {
+							existencias[i] = (i + 1);
+						}
+						int cant = (int) JOptionPane.showInputDialog(null, "cuantos " + nomP + " desea apartar",
+								"Cantidad", JOptionPane.QUESTION_MESSAGE, null, existencias, existencias[0]);
+
+						double abono = 0.0;
+						double precio = (double) conexion.getCampo("productos", "precio", "codigodebarras", idProducto);
+						do {
+							abono = leerDouble("Ingrese el Abono a Dejar");
+							if (abono < 1)
+								escribir("Ingresa una Cantidad Valida");
+							if (abono >= precio) {
+								escribir("Deberias Realizar una Venta");
+								return;
+							}
+
+						} while (abono < 1);
+
+						String consulta = "update productos set existencia = " + (existencia - cant)
+								+ " where codigodebarras = " + idProducto;
+						try {
+							PreparedStatement ps = conexion.getPreparedStatement(consulta);
+							ps.executeUpdate();
+							consulta = "INSERT INTO `apartados`(`Codigo Producto`, `cantidad`, `fecha`, `Nombre Cliente`, `precio total`,`pagado`, `restante`, `telefono`) "
+									+ "VALUES (?,?,?,?,?,?,?,?)";
+							ps = conexion.getPreparedStatement(consulta);
+							double precioTotal = ((double) cant * precio);
+							ps.setInt(1, idProducto);
+							ps.setInt(2, cant);
+							ps.setString(3, LocalDateTime.now().toString());
+							ps.setString(4, nombre);
+							ps.setDouble(5, precioTotal);
+							ps.setDouble(6, abono);
+							ps.setDouble(7, precioTotal - abono);
+							ps.setLong(8, cel);
+							ps.executeUpdate();
+
+							ResultSet rs = conexion.Consulta("Select max(id_cambio) from caja");
+							rs.next();
+							int idcaja = rs.getInt(1);
+							double totalCaja = (double) conexion.getCampo("caja", "total", "id_cambio", idcaja);
+							consulta = "update caja set total = " + (totalCaja + abono) + " where id_cambio = "
+									+ idcaja;
+							ps = conexion.getPreparedStatement(consulta);
+							ps.executeUpdate();
+
+						} catch (SQLException e1) {
+							e1.printStackTrace();
+						}
+					} else
+						escribir("No Hay Existencias");
+
+				} else {
+					buscar = JOptionPane.YES_NO_OPTION;
+					JOptionPane.showConfirmDialog(null, "El Producto no Existe \n¿Desea Buscarlo?", "Buscar", buscar);
+					if (buscar == JOptionPane.YES_OPTION) {
+						String[] opciones = { "nombre", "precio", "marca", "descripcion" };
+						JComboBox<String> jcb = new JComboBox<>(opciones);
+						jcb.setEditable(false);
+						JOptionPane.showMessageDialog(null, jcb, "select or type a value",
+								JOptionPane.QUESTION_MESSAGE);
+						new VentanaBusquedaGeneral(conexion, "productos", jcb.getSelectedItem().toString());
+
+					}
+				}
 		}
 
 	}
@@ -170,7 +273,8 @@ public class VistaPrincipal extends JFrame {
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
-
+			dispose();
+			new Apartados(conexion).setVisible(true);
 		}
 
 	}
@@ -179,7 +283,22 @@ public class VistaPrincipal extends JFrame {
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
+			do {
 
+				int idApartado = leerInt("Ingrese el Id del Apartado");
+				if (conexion.existe("apartados", "id_apartado", idApartado)) {
+					String consulta = "DELETE FROM `apartados` WHERE `Id_apartado` = " + idApartado;
+					PreparedStatement ps;
+					try {
+						ps = conexion.getPreparedStatement(consulta);
+						ps.executeUpdate();
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+
+				} else
+					escribir("El Apartado no existe");
+			} while (continuar("Desea Eliminar Otro Apartado"));
 		}
 
 	}
@@ -257,11 +376,38 @@ public class VistaPrincipal extends JFrame {
 
 	}
 
-	private class OyenteConsultarProducto implements ActionListener {
+	private class OyenteConsultarProductoPorCodigoDeBarras implements ActionListener {
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
+			new VentanaBusquedaGeneral(conexion, "productos", "codigodebarras");
+		}
 
+	}
+
+	private class OyenteConsultarProductoPorNombre implements ActionListener {
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			new VentanaBusquedaGeneral(conexion, "productos", "nombre");
+		}
+
+	}
+
+	private class OyenteConsultarProductoPorPrecio implements ActionListener {
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			new VentanaBusquedaGeneral(conexion, "productos", "precio");
+		}
+
+	}
+
+	private class OyenteConsultarProductoPorDescripcion implements ActionListener {
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			new VentanaBusquedaGeneral(conexion, "productos", "descripcion");
 		}
 
 	}

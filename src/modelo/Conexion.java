@@ -9,9 +9,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 
-import javax.swing.JOptionPane;
-import javax.swing.JPasswordField;
-
 public class Conexion {
 
 	private Connection conexion;
@@ -28,14 +25,14 @@ public class Conexion {
 		}
 	}
 
-	public String getCampo(String tabla, String campo, String criterio, String dato) {
+	public Object getCampo(String tabla, String campo, String criterio, Object dato) {
 		String consulta = "Select " + campo + " From " + tabla + " where " + criterio + "= '" + dato + "'";
 		ResultSet rs;
 		try {
 			rs = (ResultSet) Consulta(consulta);
 
 			if (rs.next())
-				return rs.getString(1);
+				return rs.getObject(1);
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -89,22 +86,6 @@ public class Conexion {
 
 	}
 
-	public boolean actualizar(String tabla, String campo, String dato, String criterio, String datoCriterio) {
-		String consulta = "UPDATE `" + tabla + "` SET `" + campo + "` = '" + dato + "'  WHERE `" + criterio + "` = '"
-				+ datoCriterio + "'";
-
-		PreparedStatement ps;
-		try {
-			ps = getPreparedStatement(consulta);
-			ps.executeUpdate();
-			return true;
-		} catch (SQLException e) {
-			System.err.println("error al actualizar: " + e.getMessage());
-			return false;
-		}
-
-	}
-
 	public Object[] getCamposTabla(String tablaName) throws SQLException {
 
 		String consulta = "DESCRIBE " + tablaName;
@@ -130,37 +111,6 @@ public class Conexion {
 			e.printStackTrace();
 		}
 		return -1;
-	}
-
-	public int generarClienteRnd() {
-
-		int id = getIDClienteRnd();
-		String consulta = "insert into cliente (nombre) values('clienteNo:" + id + "')";
-
-		try {
-			getPreparedStatement(consulta).executeUpdate();
-			return id;
-		} catch (SQLException e) {
-
-			System.err.println("error al registrar Cliente Random: " + e.getMessage());
-			return -1;
-		}
-
-	}
-
-	private int getIDClienteRnd() {
-		String consulta = "SELECT max(id_cliente) from cliente";
-
-		ResultSet rs;
-		try {
-			rs = (ResultSet) Consulta(consulta);
-			rs.next();
-			return rs.getInt(1) + 1;
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return 0;
 	}
 
 	public Object[] getNombreCiertasColumnas(ResultSet rs) {
@@ -203,21 +153,6 @@ public class Conexion {
 		}
 
 		return are;
-	}
-
-	public int getIDVenta() {
-		String consulta = "SELECT max(id_venta) from ventas";
-
-		ResultSet rs;
-		try {
-			rs = (ResultSet) Consulta(consulta);
-			rs.next();
-			return rs.getInt(1) + 1;
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return 0;
 	}
 
 	public ResultSet Consulta(String c) throws SQLException {
@@ -270,21 +205,6 @@ public class Conexion {
 		return false;
 	}
 
-	public boolean esAdmin(String user) {
-		try {
-			ResultSet rs = (ResultSet) Consulta("Select tipo from usuarios where usuario = '" + user + "'");
-			rs.next();
-			if (rs.getString(1).equals("Administrador")) {
-				return true;
-			}
-			return false;
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
-
 	public boolean existe(String tabla, String colum, Object dato) {
 		String consulta = "Select * From " + tabla + " where " + colum + "= '" + dato + "'";
 		ResultSet rs;
@@ -300,107 +220,6 @@ public class Conexion {
 		return false;
 	}
 
-	public boolean existeUsuario(String user) {
-		String consulta = "Select * From usuarios where usuario = '" + user + "'";
-
-		ResultSet rs;
-		try {
-			rs = (ResultSet) Consulta(consulta);
-
-			if (rs.next())
-				return true;
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
-
-	public boolean hayUsers() {
-		String consulta = "Select * From usuarios ";
-		ResultSet rs;
-		try {
-			rs = (ResultSet) Consulta(consulta);
-			if (rs.next())
-				return true;
-			return false;
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return false;
-		}
-
-	}
-
-	public void agregarUser() {
-		String nombre, usuario, contrasena;
-		usuario = JOptionPane.showInputDialog(null, "Ingresa su Nombre De Usuario (Debe ser unico)", "Nuevo Usuario",
-				JOptionPane.QUESTION_MESSAGE);
-		if (usuario != null) {
-			if (Utileria.valido(usuario)) {
-				nombre = JOptionPane.showInputDialog(null, "Ingresa el Nombre de la Persona a Registrar",
-						"Nuevo Usuario", JOptionPane.QUESTION_MESSAGE);
-				JPasswordField passwordField = new JPasswordField();
-				passwordField.setEchoChar('☺');
-				passwordField.setColumns(20);
-
-				JOptionPane.showConfirmDialog(null, passwordField, "ContraseÃ±a", JOptionPane.OK_CANCEL_OPTION);
-				contrasena = String.copyValueOf(passwordField.getPassword());
-				int edad = Utileria.leerInt("Ingresa la edad de la persona a Registar");
-				String[] tipos = { "Administrador" };
-				String tipo = (String) JOptionPane.showInputDialog(null, "tipo de Usuario?", "Tipo",
-						JOptionPane.QUESTION_MESSAGE, null, tipos, tipos[0]);
-				System.out.println(tipo);
-
-				altaUser(usuario, nombre, contrasena, edad, tipo);
-
-			} else
-				Utileria.escribir("invalido no deje el campo vacio ");
-		}
-
-	}
-
-	public boolean altaUser(String user, String nom, String contra, int edad, String tipo) {
-		String insertTableSQL = "INSERT INTO `usuarios`(`Usuario`, `Nombre Completo`, `contraseÃ±a`, `edad`, `tipo`) VALUES "
-				+ "(?,?,?,?,?)";
-
-		try {
-
-			PreparedStatement preparedStatement = conexion.prepareStatement(insertTableSQL);
-			preparedStatement.setString(1, user);
-			preparedStatement.setString(2, nom);
-			preparedStatement.setString(3, contra);
-			preparedStatement.setInt(4, edad);
-			preparedStatement.setString(5, tipo);
-
-			preparedStatement.executeUpdate();
-
-		} catch (SQLException e) {
-
-			System.out.println(e.getMessage());
-			return false;
-		}
-		return true;
-	}
-
-	public boolean bajauser(String user) {
-		String insertTableSQL = "DELETE FROM `usuarios` WHERE `usuarios`.`Usuario` = (?)";
-
-		try {
-
-			PreparedStatement preparedStatement = conexion.prepareStatement(insertTableSQL);
-			preparedStatement.setString(1, user);
-
-			preparedStatement.executeUpdate();
-
-		} catch (SQLException e) {
-
-			System.out.println(e.getMessage());
-			return false;
-		}
-		return true;
-	}
-
 	public void realizarConsulta(String consulta) throws SQLException {
 
 		PreparedStatement preparedStatement = conexion.prepareStatement(consulta);
@@ -411,26 +230,6 @@ public class Conexion {
 	public PreparedStatement getPreparedStatement(String consulta) throws SQLException {
 		PreparedStatement preparedStatement = conexion.prepareStatement(consulta);
 		return preparedStatement;
-	}
-
-	public String consultarUsuario(String user) {
-		String consulta = "Select * From usuarios where usuario = '" + user + "'";
-		String salida = "Datos sobre el usuario: " + user.concat("\n");
-		ResultSet rs;
-		try {
-			rs = (ResultSet) Consulta(consulta);
-			ResultSetMetaData metaDatos = rs.getMetaData();
-			int tamano = metaDatos.getColumnCount();
-			rs.next();
-			for (int i = 2; i <= tamano; i++) {
-				salida += metaDatos.getColumnLabel(i) + ":  ";
-				salida += rs.getString(i) + "  ";
-			}
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return salida;
 	}
 
 }

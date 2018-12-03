@@ -1,5 +1,6 @@
 package modelo;
 
+import java.math.BigInteger;
 import java.util.Calendar;
 
 import javax.swing.JOptionPane;
@@ -17,9 +18,11 @@ public class Utileria {
 		JOptionPane.showMessageDialog(null, mensaje, null, tipo);
 	}
 
-	public static int leerInt(String mensaje) {
+	public static Integer leerInt(String mensaje) {
 		do {
-			String entrada = leerCadena(mensaje);
+			String entrada = JOptionPane.showInputDialog(mensaje);
+			if (entrada == null)
+				return null;
 			try {
 				int numero = Integer.parseInt(entrada);
 				return numero;
@@ -29,10 +32,32 @@ public class Utileria {
 		} while (true);
 	}
 
-	public static double leerDouble(String mensaje) {
-		String entrada = leerCadena(mensaje);
-		double numero = Double.parseDouble(entrada);
-		return numero;
+	public static Double leerDouble(String mensaje) {
+		do {
+			String entrada = JOptionPane.showInputDialog(mensaje);
+			if (entrada == null)
+				return null;
+			try {
+				double numero = Double.parseDouble(entrada);
+				return numero;
+			} catch (NumberFormatException nfe) {
+				escribir("invalido");
+			}
+		} while (true);
+	}
+
+	public static Long leerBigInt(String mensaje) {
+		do {
+			String entrada = JOptionPane.showInputDialog(mensaje);
+			if (entrada == null)
+				return null;
+			try {
+				Long numero = Long.valueOf(entrada);
+				return numero;
+			} catch (NumberFormatException nfe) {
+				escribir("invalido");
+			}
+		} while (true);
 	}
 
 	public static String obtenerTimesStamp() {
